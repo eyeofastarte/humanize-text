@@ -23,13 +23,15 @@ An AI text humanization toolkit. This repo evolved through two stages:
 - **v1.0** — Documented **4 humanization methodologies** as reference implementations (translation chain, multi-turn LLM rewriting, detection-guided feedback loop, mixed-engine translation). See [docs/techniques.md](docs/techniques.md).
 - **v1.5 (current)** — Added the **Standard Pipeline**: a production-grade integration of Method 1 (Translation Chain) + Method 2 (LLM Rewriting), fixed as a 5-step chain we actually run and recommend.
 
-### v1.5 — Standard Pipeline (Recommended)
+### v1.5.1 — Standard Pipeline (Recommended)
 
-The Standard Pipeline preserves the original writing style while routing text through a 5-step multi-language chain with LLM-powered humanization at key stages.
+The Standard Pipeline preserves the original writing style while routing text through a 4-step chain: two DeepSeek humanization rewrites followed by two cross-engine translation hops.
 
 ```
-Input (EN) → Chinese (LLM Rewrite) → Japanese (LLM Rewrite) → German (Google) → Spanish (Niutrans) → Target Language (Niutrans)
+Input (EN) → Chinese (DeepSeek) → Japanese (DeepSeek) → Finnish (Google) → English (Niutrans)
 ```
+
+**See [`examples/showcase/`](examples/showcase/) for 5 real samples with full intermediate-step outputs and AI-detection verdicts.**
 
 **Characteristics:**
 - Best original style preservation among all approaches
@@ -52,17 +54,16 @@ Input (EN) → Chinese (LLM Rewrite) → Japanese (LLM Rewrite) → German (Goog
 
 | Step | Engine | From → To | Purpose |
 |------|--------|-----------|---------|
-| 1 | DeepSeek (temp 1.3) | Input → Chinese | LLM humanization rewrite + language shift |
-| 2 | DeepSeek (temp 1.3) | Chinese → Japanese | Second LLM humanization + distant language |
-| 3 | Google Translate | Japanese → German | Machine translation structural disruption |
-| 4 | Niutrans | German → Spanish | Cross-engine distribution shift |
-| 5 | Niutrans | Spanish → Target Language | Final reconstruction to target |
+| 1 | DeepSeek (temp 1.3) | Input → Chinese (中文改写) | LLM humanization rewrite + language shift |
+| 2 | DeepSeek (temp 1.3) | Chinese → Japanese (日语改写) | Second LLM humanization, carries Step 1 as history |
+| 3 | Google Translate | Japanese → Finnish (一轮翻译) | First translation hop — distant language structural disruption |
+| 4 | Niutrans | Finnish → English (二轮翻译) | Second translation hop — cross-engine reconstruction |
 
 ### Why This Chain Works
 
-1. **Steps 1–2 (LLM Rewrite):** DeepSeek at temperature 1.3 rewrites while translating, breaking AI statistical fingerprints with creative variation. Each step carries context from the previous round.
-2. **Steps 3–5 (Multi-Engine Translation):** Three different NMT engines (Google → Niutrans → Niutrans) introduce compounding structural changes. No single-engine fingerprint survives.
-3. **Distant Languages:** Chinese → Japanese → German → Spanish maximizes linguistic distance at each hop, ensuring thorough restructuring.
+1. **Steps 1–2 (LLM Rewrite):** DeepSeek at temperature 1.3 rewrites while translating, breaking AI statistical fingerprints with creative variation. Step 2 carries Step 1 as conversation history for coherent humanization.
+2. **Steps 3–4 (Multi-Engine Translation):** Two different NMT engines (Google → Niutrans) introduce compounding structural changes. No single-engine fingerprint survives.
+3. **Distant Languages:** Chinese → Japanese → Finnish maximizes linguistic distance at each hop, ensuring thorough restructuring before reconstruction to English.
 
 ---
 
@@ -119,6 +120,22 @@ python -m src.pipeline --input "Your AI-generated text here"
 1. Import `n8n/humanize_standard.json` into your n8n instance
 2. Configure DeepSeek API key in the HTTP Request nodes
 3. Run — input text goes in, humanized text comes out
+
+---
+
+## Showcase — 5 Real Examples with Step-by-Step Outputs
+
+We ran the pipeline end-to-end on 5 real input texts and saved every intermediate step. All 5 final outputs were classified as `human` by the AI detector.
+
+| # | Topic | Detection | Confidence |
+|---|-------|-----------|------------|
+| [01](examples/showcase/example_01.md) | Quantum Computing | `human` | 0.9997 |
+| [02](examples/showcase/example_02.md) | Quantum Readiness Strategy | `human` | 0.9982 |
+| [03](examples/showcase/example_03.md) | Sustainable Supply Chains | `human` | 0.7810 |
+| [04](examples/showcase/example_04.md) | Financial Literacy | `human` | 0.9924 |
+| [05](examples/showcase/example_05.md) | Peer Review in Science | `human` | 0.7218 |
+
+Each example shows: original input → Step 1 (中文改写) → Step 2 (日语改写) → Step 3 (一轮翻译) → Step 4 (二轮翻译, final). See [`examples/showcase/`](examples/showcase/) for full traces.
 
 ---
 

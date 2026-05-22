@@ -1,9 +1,15 @@
 """
-Standard Pipeline v1.5 — Multi-language translation chain with LLM humanization.
+Standard Pipeline v1.5.1 — Multi-language translation chain with LLM humanization.
 
-Pipeline:
-  Input → Chinese (DeepSeek rewrite) → Japanese (DeepSeek rewrite)
-  → German (Google) → Spanish (Niutrans) → Target Language (Niutrans)
+Pipeline (4 steps):
+  Step 1: Input (EN) → Chinese — DeepSeek humanization rewrite
+  Step 2: Chinese → Japanese — DeepSeek humanization rewrite (with history)
+  Step 3: Japanese → Finnish — Google Translate (first translation hop)
+  Step 4: Finnish → Target (EN) — Niutrans (second translation hop)
+
+This chain was selected after empirical testing against AI detectors on
+50+ sample texts. See `examples/showcase/` for input/output traces of all
+4 intermediate steps on 5 real samples.
 """
 
 import time
@@ -20,51 +26,72 @@ def run_standard_pipeline(text: str, config: dict, target_lang: str = "en") -> d
     Args:
         text: Input text to humanize.
         config: Configuration dict loaded from config.toml.
-        target_lang: Target language code for final output.
+        target_lang: Target language code for final output (default: "en").
 
     Returns:
-        dict with 'result', 'steps', and 'processing_time_ms'.
+        dict with keys:
+            - 'result': final humanized text
+            - 'steps': list of {step, engine, direction, output, length}
+            - 'processing_time_ms': total elapsed time in milliseconds
     """
     ds_key = config["api_keys"]["deepseek_api_key"]
     niutrans_key = config["api_keys"]["niutrans_api_key"]
+    intermediate_lang = config.get("pipeline", {}).get("intermediate_lang", "fi")
+
     steps = []
     start = time.time()
 
-    # Step 1: Translate to Chinese + LLM humanization rewrite
+    # Step 1: DeepSeek — Input (EN) → Chinese humanization rewrite
     step1 = deepseek_rewrite(
         text=text,
         target_language="中文",
         api_key=ds_key,
         history=None,
     )
-    steps.append({"step": 1, "engine": "DeepSeek", "direction": "Input → Chinese", "length": len(step1)})
+    steps.append({
+        "step": 1, "engine": "DeepSeek",
+        "direction": "Input → Chinese (中文改写)",
+        "output": step1, "length": len(step1),
+    })
 
-    # Step 2: Translate to Japanese + LLM humanization rewrite (with history from step 1)
+    # Step 2: DeepSeek — Chinese → Japanese (carries step 1 as history)
     step2 = deepseek_rewrite(
         text=step1,
         target_language="日语",
         api_key=ds_key,
         history={"input": text, "output": step1},
     )
-    steps.append({"step": 2, "engine": "DeepSeek", "direction": "Chinese → Japanese", "length": len(step2)})
+    steps.append({
+        "step": 2, "engine": "DeepSeek",
+        "direction": "Chinese → Japanese (日语改写)",
+        "output": step2, "length": len(step2),
+    })
 
-    # Step 3: Google Translate — Japanese → German
-    step3 = google_translate(step2, source="ja", target="de")
-    steps.append({"step": 3, "engine": "Google", "direction": "Japanese → German", "length": len(step3)})
+    # Step 3: Google Translate — Japanese → intermediate language (first translation hop)
+    step3 = google_translate(step2, source="ja", target=intermediate_lang)
+    steps.append({
+        "step": 3, "engine": "Google",
+        "direction": f"Japanese → {intermediate_lang.upper()} (一轮翻译)",
+        "output": step3, "length": len(step3),
+    })
 
-    # Step 4: Niutrans — German → Spanish
-    step4 = niutrans_translate(step3, source="de", target="es", api_key=niutrans_key)
-    steps.append({"step": 4, "engine": "Niutrans", "direction": "German → Spanish", "length": len(step4)})
-
-    # Step 5: Niutrans — Spanish → Target Language
-    niutrans_target = _lang_code_to_niutrans(target_lang)
-    step5 = niutrans_translate(step4, source="es", target=niutrans_target, api_key=niutrans_key)
-    steps.append({"step": 5, "engine": "Niutrans", "direction": f"Spanish → {target_lang}", "length": len(step5)})
+    # Step 4: Niutrans — intermediate language → target (second translation hop)
+    step4 = niutrans_translate(
+        step3,
+        source=intermediate_lang,
+        target=_lang_code_to_niutrans(target_lang),
+        api_key=niutrans_key,
+    )
+    steps.append({
+        "step": 4, "engine": "Niutrans",
+        "direction": f"{intermediate_lang.upper()} → {target_lang.upper()} (二轮翻译)",
+        "output": step4, "length": len(step4),
+    })
 
     elapsed_ms = int((time.time() - start) * 1000)
 
     return {
-        "result": step5,
+        "result": step4,
         "steps": steps,
         "processing_time_ms": elapsed_ms,
     }
@@ -76,6 +103,7 @@ def _lang_code_to_niutrans(code: str) -> str:
         "en": "en", "zh": "zh", "ja": "ja", "ko": "ko",
         "fr": "fr", "de": "de", "es": "es", "pt": "pt",
         "ru": "ru", "ar": "ar", "it": "it", "nl": "nl",
+        "fi": "fi",
     }
     return mapping.get(code, code)
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.5.1] - 2026-05-22
+
+### Added
+- **`examples/showcase/`** — 5 end-to-end input/output traces with **all intermediate step outputs** (中文改写 / 日语改写 / 一轮翻译 / 二轮翻译) plus AI-detection verdicts
+- `examples/showcase/README.md` — index with detection-confidence table
+- Pipeline result dict now includes `output` for each step (was only `length`)
+- New config option `[pipeline].intermediate_lang` to swap the intermediate translation language
+
+### Changed
+- **Pipeline aligned with production reality**: chain is now 4 steps (was documented as 5) — `EN → ZH (DeepSeek) → JA (DeepSeek) → FI (Google) → EN (Niutrans)`. Finnish replaces the German→Spanish double-hop based on empirical validation.
+- README.md / README-zh.md / docs/pipeline.md updated to match the actual chain
+- Step labels now use Chinese conventions (中文改写 / 日语改写 / 一轮翻译 / 二轮翻译) for consistency with internal terminology
+
+### Why this change
+The v1.5 documented chain (5 steps with German→Spanish→target) didn't match the actual production pipeline used to generate validation samples. v1.5.1 fixes this so code, docs, and showcase examples are all consistent.
+
 ## [1.5.0] - 2026-05-18
 
 ### Added — Standard Pipeline (Production)
