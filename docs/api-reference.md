@@ -97,7 +97,7 @@ python -m src.methodologies.humanizer [OPTIONS]
 | `--language` | string | `en` | Target language code |
 | `--tier` | string | `standard` | Processing tier |
 | `--config` | string | `config/config.toml` | Path to config file |
-| `--serve` | flag | off | Start FastAPI server on port 8000 |
+| `--serve` | flag | off | Start FastAPI server on port 8001 |
 
 **Examples:**
 
@@ -121,10 +121,10 @@ print(result.text)
 
 ### REST API (Docker)
 
-When running via Docker, the v1.0 dispatcher's FastAPI app is exposed at `http://localhost:8000`.
+When running via Docker, the v1.0 dispatcher's FastAPI app is exposed at `http://localhost:8001`.
 
 ```bash
-curl -X POST http://localhost:8000/humanize \
+curl -X POST http://localhost:8001/humanize \
   -H "Content-Type: application/json" \
   -d '{"text": "Your AI text here", "method": "translation_chain"}'
 ```

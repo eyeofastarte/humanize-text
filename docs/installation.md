@@ -19,7 +19,7 @@ cd humanize-text
 docker compose up -d
 ```
 
-API available at `http://localhost:8000` (exposes the v1.0 methodology dispatcher).
+API available at `http://localhost:8001` (exposes the v1.0 methodology dispatcher).
 
 ## Option 3: Source Installation
 

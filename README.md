@@ -106,6 +106,8 @@ The Standard pipeline above is **one of three tiers** available. Each has differ
 | Lynote.ai | Everyone — all tiers, zero setup | Visit lynote.ai|
 | n8n Workflow | No-code automation users | Import [`n8n/humanize_standard.json`](n8n/humanize_standard.json) |
 | Python Script | Developers | See below |
+| n8n Workflow | No-code automation users | See below |
+| Docker | Full-stack users (UI + API) | See below |
 
 ### Python
 
@@ -116,6 +118,12 @@ pip install -r requirements.txt
 cp config/config.example.toml config/config.toml
 # Fill in your API keys in config.toml (see examples below)
 python -m src.standard.pipeline --input "Your AI-generated text here"
+```
+
+### Run with Docker
+
+```bash
+docker compose up --build
 ```
 
 **DeepSeek (default):**
@@ -148,6 +156,8 @@ Override the API endpoint with `base_url` in `[llm]`, or via `LLM_BASE_URL` / `L
 1. Import `n8n/humanize_standard.json` into your n8n instance
 2. Configure the LLM API key and URL in the HTTP Request nodes (defaults to DeepSeek; point at OpenRouter's `https://openrouter.ai/api/v1/chat/completions` to use OpenRouter)
 3. Run — input text goes in, humanized text comes out
+
+The web UI is available at `http://localhost:8001`.
 
 ---
 
@@ -249,6 +259,3 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 - [MoneyPrinterTurbo](https://github.com/harry0703/MoneyPrinterTurbo) — AI short video generator
 - [AiToEarn](https://github.com/yikart/AiToEarn) — AI content publishing tool
-
-
-
