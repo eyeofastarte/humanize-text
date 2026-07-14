@@ -242,7 +242,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [Lynote.ai — AI Humanization Platform](https://lynote.ai)
+- [Lynote.ai — AI Humanization Platform](https://lynote.ai/ai-humanizer)
 - [Report a Bug](https://github.com/lynote-ai/humanize-text/issues)
 
 ### Recommended Projects
